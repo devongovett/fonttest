@@ -26,6 +26,11 @@ are used by Linux, Android, ChromeOS, and many other systems.
 * With `--engine=CoreText`, the tests are run on Apple’s CoreText.
 This option will work only if you run the test suite on MacOS X.
 
+* With `--engine=fontkit`, the tests are run on 
+[fontkit](http://github.com/devongovett/fontkit), a JavaScript font engine.
+Make sure you have [NodeJS](http://nodejs.org/) installed, and run `npm install`
+prior to running the tests to install dependencies.
+
 If you’d like to test another OpenType implementation, please go ahead.
 
 

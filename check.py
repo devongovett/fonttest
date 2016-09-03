@@ -30,6 +30,7 @@ FONTTEST_VARIATION = FONTTEST_NAMESPACE + 'var'
 class ConformanceChecker:
     def __init__(self, engine):
         self.engine = engine
+        self.cmd = 'src/fonttest/fontkit.js' if self.engine == 'fontkit' else 'build/out/Default/fonttest'
         self.datestr = self.make_datestr()
         self.reports = {}  # filename --> HTML ElementTree
         self.conformance = {}  # testcase -> True|False
@@ -49,7 +50,7 @@ class ConformanceChecker:
             variation = e.attrib.get(FONTTEST_VARIATION)
             expected_svg = e.find('svg')
             self.normalize_svg(expected_svg)
-            command = ['build/out/Default/fonttest', '--font=' + font,
+            command = [self.cmd, '--font=' + font,
                        '--testcase=' + testcase, '--engine=' + self.engine]
             if render: command.append('--render=' + render)
             if variation: command.append('--variation=' + variation)
@@ -130,7 +131,7 @@ def build():
 def main():
     parser = argparse.ArgumentParser()
     parser.add_argument('--engine',
-                        choices=['FreeStack', 'CoreText', 'DirectWrite'],
+                        choices=['FreeStack', 'CoreText', 'DirectWrite', 'fontkit'],
                         default='FreeStack')
     parser.add_argument('--output', help='path to report file being written')
     args = parser.parse_args()
