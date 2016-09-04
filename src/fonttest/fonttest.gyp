@@ -22,12 +22,16 @@
         'font_engine.cpp',
         'freestack_engine.cpp',
         'freestack_font.cpp',
+        'freestack_line.cpp',
         'freestack_path.cpp',
         'test_harness.cpp',
       ],
       'include_dirs': ['..'],
       'dependencies': [
         '../third_party/freetype/freetype.gyp:freetype',
+        '../third_party/fribidi/fribidi.gyp:fribidi',
+        '../third_party/harfbuzz/harfbuzz.gyp:harfbuzz',
+        '../third_party/raqm/raqm.gyp:raqm',
       ],
       'conditions': [
         [

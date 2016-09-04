@@ -28,7 +28,7 @@ class FreeStackFont : public Font {
  public:
   FreeStackFont(FT_Face face);
   ~FreeStackFont();
-
+  FT_Face GetFace(double size, const FontVariation& variation);
   virtual void GetGlyphOutline(int glyphID, const FontVariation& variation,
                                std::string* path, std::string* viewBox);
 
