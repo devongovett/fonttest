@@ -31,7 +31,10 @@ FONTTEST_VARIATION = FONTTEST_NAMESPACE + 'var'
 class ConformanceChecker:
     def __init__(self, engine):
         self.engine = engine
-        self.cmd = 'src/fonttest/fontkit.js' if self.engine == 'fontkit' else 'build/out/Default/fonttest'
+        if self.engine == 'OpenType.js':
+            self.command = 'src/third_party/opentypejs/opentype.js/bin/test-render'
+        else:
+            self.command = 'src/fonttest/fontkit.js' if self.engine == 'fontkit' else 'build/out/Default/fonttest'
         self.datestr = self.make_datestr()
         self.reports = {}  # filename --> HTML ElementTree
         self.conformance = {}  # testcase -> True|False
@@ -42,7 +45,7 @@ class ConformanceChecker:
         return '%s %d, %d' % (time.strftime("%B"), now.day, now.year)
 
     def check(self, testfile):
-        print testfile
+        all_ok = True
         doc = etree.parse(testfile).getroot()
         self.reports[testfile] = doc
         for e in doc.findall(".//*[@class='expected']"):
@@ -52,29 +55,46 @@ class ConformanceChecker:
             variation = e.attrib.get(FONTTEST_VARIATION)
             expected_svg = e.find('svg')
             self.normalize_svg(expected_svg)
-            command = [self.cmd, '--font=' + font,
+            command = [self.command, '--font=' + font,
                        '--testcase=' + testcase, '--engine=' + self.engine]
             if render: command.append('--render=' + render)
             if variation: command.append('--variation=' + variation)
-            observed = subprocess.check_output(command)
+            try:
+                observed = subprocess.check_output(command)
+            except subprocess.CalledProcessError:
+                observed = '<error/>'
             observed = re.sub(r'>\s+<', '><', observed)
             observed = observed.replace(
                 'xmlns="http://www.w3.org/2000/svg"', '')
             observed_svg = etree.fromstring(observed)
             self.normalize_svg(observed_svg)
-            self.observed[testcase] = observed_svg
             ok = svgutil.is_similar(expected_svg, observed_svg, maxDelta=1.0)
+            all_ok = all_ok and ok
             self.conformance[testcase] = ok
+            self.add_prefix_to_svg_ids(observed_svg, 'OBSERVED')
+            self.observed[testcase] = observed_svg
             groups = testcase.split('/')
             for i in range(len(groups)):
                 group = '/'.join(groups[:i])
                 self.conformance[group] = (ok and
                                            self.conformance.get(group, True))
+        print "%s %s" % ("PASS" if all_ok else "FAIL", testfile)
 
     def normalize_svg(self, svg):
         strip_path = lambda p: re.sub(r'\s+', ' ', p).strip()
         for path in svg.findall('.//path[@d]'):
             path.attrib['d'] = strip_path(path.attrib['d'])
+
+    def add_prefix_to_svg_ids(self, svg, prefix):
+        # The 'id' attribute needs to be globally unique in the HTML document,
+        # so we add a prefix to distinguish identifiers in the expected versus
+        # observed SVG image.
+        for symbol in svg.findall('.//symbol[@id]'):
+            symbol.attrib['id'] = '%s/%s' % (prefix, symbol.attrib['id'])
+        href = '{http://www.w3.org/1999/xlink}href'
+        for use in svg.findall('.//use[@%s]' % href):
+            assert use.attrib[href][0] == '#', use.attrib[href]
+            use.attrib[href] = '#%s/%s' % (prefix, use.attrib[href][1:])
 
     def write_report(self, path):
         report = etree.parse('testcases/index.html').getroot()
@@ -123,11 +143,14 @@ class ConformanceChecker:
             outfile.write(xml)
 
 
-def build():
-    subprocess.check_call(
-        './src/third_party/gyp/gyp -f make --depth . '
-        '--generator-output build  src/fonttest/fonttest.gyp'.split())
-    subprocess.check_call(['make', '-s', '--directory', 'build'])
+def build(engine):
+    if engine == 'OpenType.js':
+        subprocess.check_call(['npm', 'install'], cwd='./src/third_party/opentypejs/opentype.js')
+    else:
+        subprocess.check_call(
+            './src/third_party/gyp/gyp -f make --depth . '
+            '--generator-output build  src/fonttest/fonttest.gyp'.split())
+        subprocess.check_call(['make', '-s', '--directory', 'build'])
 
 
 def main():
@@ -135,11 +158,11 @@ def main():
     etree.register_namespace('xlink', 'http://www.w3.org/1999/xlink')
     parser = argparse.ArgumentParser()
     parser.add_argument('--engine',
-                        choices=['FreeStack', 'CoreText', 'DirectWrite', 'fontkit'],
+                        choices=['FreeStack', 'CoreText', 'DirectWrite', 'OpenType.js', 'fontkit'],
                         default='FreeStack')
     parser.add_argument('--output', help='path to report file being written')
     args = parser.parse_args()
-    build()
+    build(engine=args.engine)
     checker = ConformanceChecker(engine=args.engine)
     for filename in os.listdir('testcases'):
         if (filename == 'index.html'
