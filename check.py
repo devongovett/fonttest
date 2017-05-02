@@ -32,9 +32,11 @@ class ConformanceChecker:
     def __init__(self, engine):
         self.engine = engine
         if self.engine == 'OpenType.js':
-            self.command = 'src/third_party/opentypejs/opentype.js/bin/test-render'
+            self.command = 'node_modules/opentype.js/bin/test-render'
+        elif self.engine == 'fontkit':
+            self.command = 'src/third_party/fontkit/render'
         else:
-            self.command = 'src/fonttest/fontkit.js' if self.engine == 'fontkit' else 'build/out/Default/fonttest'
+            self.command = 'build/out/Default/fonttest'
         self.datestr = self.make_datestr()
         self.reports = {}  # filename --> HTML ElementTree
         self.conformance = {}  # testcase -> True|False
@@ -144,8 +146,8 @@ class ConformanceChecker:
 
 
 def build(engine):
-    if engine == 'OpenType.js':
-        subprocess.check_call(['npm', 'install'], cwd='./src/third_party/opentypejs/opentype.js')
+    if engine == 'OpenType.js' or engine == 'fontkit':
+        subprocess.check_call(['npm', 'install'])
     else:
         subprocess.check_call(
             './src/third_party/gyp/gyp -f make --depth . '

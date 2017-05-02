@@ -1,9 +1,9 @@
 {
-  "name": "fonttest",
+  "name": "text-rendering-tests",
   "version": "1.0.0",
   "description": "OpenType test suite",
   "dependencies": {
-    "fontkit": "^1.4.1",
-    "minimist": "^1.2.0"
+    "fontkit": "^1.5.5",
+    "opentype.js": "^0.7.1"
   }
 }
